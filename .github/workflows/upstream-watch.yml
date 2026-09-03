@@ -1,0 +1,51 @@
+# 监听 Gitee 真上游（FancyCabbage/skyland-auto-sign），有更新时通过 Server酱提醒。
+# 注意：GitHub 上的 fork 提示条对比的是 YueHen14 镜像，镜像同步有延迟；
+# 这里直接对比 Gitee，才是最可靠的更新信号。
+name: Upstream Watch
+
+on:
+  schedule:
+    - cron: '30 0 * * *' # UTC 0:30 = 北京时间每天 8:30，紧跟每日签到之后
+  workflow_dispatch:
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare with Gitee upstream
+        env:
+          SC3_SENDKEY: ${{ secrets.SC3_SENDKEY }}
+        run: |
+          set -e
+          git fetch https://gitee.com/FancyCabbage/skyland-auto-sign.git master
+          UPSTREAM=$(git rev-parse FETCH_HEAD)
+          echo "upstream HEAD: $UPSTREAM"
+
+          # 只比较上游真正维护的代码路径，忽略本仓库新增的 workflow/README 定制
+          if git diff --quiet HEAD FETCH_HEAD -- src requirements.txt; then
+            echo "No upstream changes affecting src/ or requirements.txt"
+            exit 0
+          fi
+
+          echo "Upstream has new changes, sending ServerChan notification."
+
+          {
+            echo "Gitee 上游 [skyland-auto-sign](https://gitee.com/FancyCabbage/skyland-auto-sign) 有新的更新，代码与本仓库存在差异。"
+            echo ""
+            echo "**上游最近提交：**"
+            echo '```'
+            git log --oneline -10 FETCH_HEAD
+            echo '```'
+            echo ""
+            echo "**处理方式：**"
+            echo "1. GitHub 仓库页面 → Sync fork → Update branch（同步的是镜像，可能有延迟）"
+            echo "2. 或手动对齐 Gitee：联系仓库维护者处理"
+          } > desp.md
+
+          curl -s -X POST "https://sctapi.ftqq.com/${SC3_SENDKEY}.send" \
+            --data-urlencode "title=森空岛脚本：上游有更新" \
+            --data-urlencode "desp@desp.md"

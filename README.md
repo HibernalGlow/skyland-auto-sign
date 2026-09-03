@@ -264,3 +264,20 @@ TOKEN和日志应该都会被存储在MAA根路径下
 2024.9.10 森空岛登入接口引入了数美接口，请求头必须传递dId参数，导致无法正常登陆
 
 现已解决，具体实现看`SecuritySm.py`文件
+---
+
+## 本仓库定制说明（fork 自 YueHen14 镜像，代码对齐 Gitee 上游）
+
+相对 Gitee 上游 [FancyCabbage/skyland-auto-sign](https://gitee.com/FancyCabbage/skyland-auto-sign) 的差异：
+
+| Workflow | 说明 |
+|---|---|
+| `auto_sign.yaml` | 每日签到，定时为 UTC 0 点（北京时间早 8 点），签到结果无论成败都推送 Server酱 |
+| `upstream-watch.yml` | 每天 8:30 直接对比 Gitee 真上游，代码有更新时通过 Server酱提醒（比 fork 提示条可靠，镜像同步有延迟） |
+| `keep-alive.yml` | 每 28 天以仓库所有者身份提交一个空 commit，防止 GitHub 因 60 天无活动自动禁用定时 workflow |
+
+需要配置：
+
+- Secret `TOKEN`：森空岛登录凭证，从 https://web-api.skland.com/account/info/hg 获取（登录后访问，取 `data.content`）；过期后 Server酱会收到"签到失败"提醒，重新获取并更新即可
+- Secret `SC3_SENDKEY`：Server酱 SendKey（https://sctapi.ftqq.com 或 https://sc3.ft07.com）
+- Variable `EXIT_WHEN_FAIL` 设为 `on`：签到失败时 workflow 标红，便于在 Actions 页面直接看到
