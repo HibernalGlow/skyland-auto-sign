@@ -5,7 +5,7 @@ name: Upstream Watch
 
 on:
   schedule:
-    - cron: '30 0 * * *' # UTC 0:30 = 北京时间每天 8:30，紧跟每日签到之后
+    - cron: '30 0 * * 1' # UTC 0:30 = 北京时间每周一 8:30
   workflow_dispatch:
 
 jobs:

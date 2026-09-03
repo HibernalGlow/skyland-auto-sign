@@ -272,8 +272,8 @@ TOKEN和日志应该都会被存储在MAA根路径下
 
 | Workflow | 说明 |
 |---|---|
-| `auto_sign.yaml` | 每日签到，定时为 UTC 0 点（北京时间早 8 点），签到结果无论成败都推送 Server酱 |
-| `upstream-watch.yml` | 每天 8:30 直接对比 Gitee 真上游，代码有更新时通过 Server酱提醒（比 fork 提示条可靠，镜像同步有延迟） |
+| `auto-sign.yml` | 每日签到，定时为 UTC 0 点（北京时间早 8 点），签到结果无论成败都推送 Server酱 |
+| `upstream-watch.yml` | 每周一 8:30 直接对比 Gitee 真上游，代码有更新时通过 Server酱提醒（比 fork 提示条可靠，镜像同步有延迟） |
 | `keep-alive.yml` | 每 28 天以仓库所有者身份提交一个空 commit，防止 GitHub 因 60 天无活动自动禁用定时 workflow |
 
 需要配置：
