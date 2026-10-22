@@ -6,3 +6,4 @@ logs
 TOKEN.txt
 *.pyc
 __pycache__/
+.workbuddy/

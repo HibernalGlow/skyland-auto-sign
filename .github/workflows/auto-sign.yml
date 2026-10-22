@@ -2,11 +2,20 @@
 name: Auto Sign
 on:
   schedule:
-    - cron: '0 0 * * *' # UTC 0 点 = 北京时间每天 8 点
+    # 故意不用整点：GitHub 官方文档说整点（分钟 0/30）是高峰期，定时任务可能被延迟甚至整个丢弃。
+    # 这里取北京时间 8:17 错峰。
+    - cron: '17 0 * * *' # UTC 0:17 = 北京时间每天 8:17
   workflow_dispatch:
+    inputs:
+      reason:
+        description: '触发来源（外部定时器传 external，便于在日志里区分）'
+        required: false
+        default: 'manual'
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 2026-10-09 那次运行卡了 6 小时才被取消，这里显式限制，避免再次长时间占用
+    timeout-minutes: 15
     env:
       TZ: Asia/Shanghai
     steps:
@@ -29,5 +38,7 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           SC3_SENDKEY: ${{ secrets.SC3_SENDKEY }}
           EXIT_WHEN_FAIL: ${{ vars.EXIT_WHEN_FAIL }}
+          TRIGGER_REASON: ${{ inputs.reason }}
         run: |
+          echo "trigger: ${GITHUB_EVENT_NAME} / ${TRIGGER_REASON:-n/a}"
           python src/main.py

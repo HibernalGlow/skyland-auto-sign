@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  本机兜底定时：每天 08:40 与 11:40（本地时间）各跑一次 scripts/trigger-sign.sh。
+  脚本自身幂等：当天已有运行就跳过，所以两次触发不会造成重复签到。
+  安装：
+    cp scripts/external-cron/launchd/cn.glow.skyland-autosign.plist ~/Library/LaunchAgents/
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/cn.glow.skyland-autosign.plist 2>/dev/null || true
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/cn.glow.skyland-autosign.plist
+    launchctl kickstart -p gui/$(id -u)/cn.glow.skyland-autosign   # 立刻试跑一次
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>cn.glow.skyland-autosign</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/glow/Base/Code/Prometheus/skyland-auto-sign/scripts/trigger-sign.sh</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>REPO</key>
+    <string>HibernalGlow/skyland-auto-sign</string>
+  </dict>
+
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Hour</key><integer>8</integer>
+      <key>Minute</key><integer>40</integer>
+    </dict>
+    <dict>
+      <key>Hour</key><integer>11</integer>
+      <key>Minute</key><integer>40</integer>
+    </dict>
+  </array>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/glow/Library/Logs/skyland-autosign.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/glow/Library/Logs/skyland-autosign.log</string>
+</dict>
+</plist>

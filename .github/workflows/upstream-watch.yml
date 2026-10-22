@@ -1,11 +1,11 @@
 # 监听 Gitee 真上游（FancyCabbage/skyland-auto-sign），有更新时通过 Server酱提醒。
-# 注意：GitHub 上的 fork 提示条对比的是 YueHen14 镜像，镜像同步有延迟；
-# 这里直接对比 Gitee，才是最可靠的更新信号。
+# 本仓库已脱离 fork（独立仓库），不存在 GitHub 的「Sync fork」入口；
+# 上游对比一律以 Gitee 为准，YueHen14 镜像只作为 git remote（upstream）存在。
 name: Upstream Watch
 
 on:
   schedule:
-    - cron: '30 0 * * 1' # UTC 0:30 = 北京时间每周一 8:30
+    - cron: '37 0 * * 1' # UTC 0:37 = 北京时间每周一 8:37（错开整点高峰）
   workflow_dispatch:
 
 jobs:
@@ -51,8 +51,8 @@ jobs:
             echo '```'
             echo ""
             echo "**处理方式：**"
-            echo "1. GitHub 仓库页面 → Sync fork → Update branch（同步的是镜像，可能有延迟）"
-            echo "2. 或手动对齐 Gitee：联系仓库维护者处理"
+            echo "1. 本地：git fetch gitee master && git merge FETCH_HEAD（参见 README「同步上游」）"
+            echo "2. 本仓库已脱离 fork，GitHub 页面没有 Sync fork 按钮，不要再点"
           } > desp.md
 
           curl -s -X POST "https://sctapi.ftqq.com/${SC3_SENDKEY}.send" \
