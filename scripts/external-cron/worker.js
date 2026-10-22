@@ -10,9 +10,10 @@
  */
 
 const GITHUB_API = 'https://api.github.com';
+const WINDOW_HOURS = 20; // 与 scripts/trigger-sign.sh 保持一致
 
-function utcToday() {
-  return new Date().toISOString().slice(0, 10);
+function windowStart() {
+  return new Date(Date.now() - WINDOW_HOURS * 3600 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 async function ghFetch(env, path, init = {}) {
@@ -30,11 +31,11 @@ async function ghFetch(env, path, init = {}) {
   return res;
 }
 
-async function runsToday(env) {
-  const today = utcToday();
+async function runsRecent(env) {
+  const since = windowStart();
   const res = await ghFetch(
     env,
-    `/repos/${env.REPO}/actions/workflows/${env.WORKFLOW}/runs?per_page=20`,
+    `/repos/${env.REPO}/actions/workflows/${env.WORKFLOW}/runs?per_page=30`,
   );
   if (!res.ok) {
     throw new Error(`list runs failed: ${res.status} ${await res.text()}`);
@@ -42,7 +43,7 @@ async function runsToday(env) {
   const data = await res.json();
   return (data.workflow_runs || []).filter(
     (r) =>
-      r.created_at.slice(0, 10) === today &&
+      r.created_at > since &&
       r.conclusion !== 'cancelled' &&
       r.conclusion !== 'skipped',
   ).length;
@@ -62,9 +63,9 @@ export default {
   async scheduled(event, env, ctx) {
     const trigger = event.cron || 'cron';
     try {
-      const count = await runsToday(env);
+      const count = await runsRecent(env);
       if (count > 0) {
-        console.log(`[skip] ${utcToday()} 已有 ${count} 次运行 (${trigger})`);
+        console.log(`[skip] 最近 ${WINDOW_HOURS}h 已有 ${count} 次运行 (${trigger})`);
         return;
       }
       await dispatch(env, `cf-${trigger}`);
@@ -78,9 +79,19 @@ export default {
   // 浏览器访问 Worker 域名时可手动看一眼状态
   async fetch(request, env) {
     try {
-      const count = await runsToday(env);
+      const count = await runsRecent(env);
       return new Response(
-        JSON.stringify({ repo: env.REPO, workflow: env.WORKFLOW, utc_today: utcToday(), runs_today: count }, null, 2),
+        JSON.stringify(
+          {
+            repo: env.REPO,
+            workflow: env.WORKFLOW,
+            window_hours: WINDOW_HOURS,
+            runs_in_window: count,
+            window_start: windowStart(),
+          },
+          null,
+          2,
+        ),
         { headers: { 'content-type': 'application/json; charset=utf-8' } },
       );
     } catch (err) {

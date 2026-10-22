@@ -266,18 +266,61 @@ TOKEN和日志应该都会被存储在MAA根路径下
 现已解决，具体实现看`SecuritySm.py`文件
 ---
 
-## 本仓库定制说明（fork 自 YueHen14 镜像，代码对齐 Gitee 上游）
+## 本仓库定制说明（独立仓库，代码对齐 Gitee 上游）
+
+本仓库**已脱离 fork**，是独立仓库；上游仍然保留为 git remote，需要时手动对齐：
+
+```bash
+git fetch gitee master          # gitee = FancyCabbage/skyland-auto-sign（真上游）
+git merge FETCH_HEAD            # 或 git cherry-pick / 手工对齐
+
+git remote -v
+# origin   HibernalGlow/skyland-auto-sign      本仓库（独立，非 fork）
+# upstream YueHen14/skyland-auto-sign          GitHub 镜像（仅参考，有同步延迟）
+# gitee    FancyCabbage/skyland-auto-sign      Gitee 真上游
+# fork     HibernalGlow/skyland-auto-sign-fork 旧的 fork，已停用定时，只留作历史
+```
 
 相对 Gitee 上游 [FancyCabbage/skyland-auto-sign](https://gitee.com/FancyCabbage/skyland-auto-sign) 的差异：
 
 | Workflow | 说明 |
 |---|---|
-| `auto-sign.yml` | 每日签到，定时为 UTC 0 点（北京时间早 8 点），签到结果无论成败都推送 Server酱 |
-| `upstream-watch.yml` | 每周一 8:30 直接对比 Gitee 真上游，代码有更新时通过 Server酱提醒（比 fork 提示条可靠，镜像同步有延迟） |
+| `auto-sign.yml` | 每日签到，`cron: 17 0 * * *`（北京时间 8:17，**故意避开整点**），`timeout-minutes: 15`；签到结果无论成败都推送 Server酱 |
+| `upstream-watch.yml` | 每周一 8:37 直接对比 Gitee 真上游，代码有更新时通过 Server酱提醒 |
 | `keep-alive.yml` | 每 28 天以仓库所有者身份提交一个空 commit，防止 GitHub 因 60 天无活动自动禁用定时 workflow |
 
-需要配置：
+### 三条触发路径（不把签到压在 GitHub schedule 一个点上）
+
+GitHub 的 `schedule` 会延迟、会被丢弃、还会因仓库长期无活动被**静默停用**（2026-10-15 ~ 10-22 就整段漏签过）。
+所以除了 GitHub 自己的定时，还有两条兜底，都走 `workflow_dispatch`：
+
+| 路径 | 时间（北京时间） | 依赖 |
+|---|---|---|
+| GitHub schedule | 8:17 左右（可能延迟数小时） | GitHub |
+| 本机 launchd | 8:40、11:40 | 本机开机联网（`scripts/external-cron/install-launchd.sh`） |
+| Cloudflare Worker | 8:40 | Cloudflare 账号（`scripts/external-cron/`） |
+
+三者都是幂等的：先查「最近 20 小时是否已有运行」，有就跳过。详见 [`scripts/external-cron/README.md`](scripts/external-cron/README.md)。
+
+### 需要配置
 
 - Secret `TOKEN`：森空岛登录凭证，从 https://web-api.skland.com/account/info/hg 获取（登录后访问，取 `data.content`）；过期后 Server酱会收到"签到失败"提醒，重新获取并更新即可
 - Secret `SC3_SENDKEY`：Server酱 SendKey（https://sctapi.ftqq.com 或 https://sc3.ft07.com）
 - Variable `EXIT_WHEN_FAIL` 设为 `on`：签到失败时 workflow 标红，便于在 Actions 页面直接看到
+
+```bash
+gh secret set TOKEN   -R HibernalGlow/skyland-auto-sign
+gh secret set SC3_SENDKEY -R HibernalGlow/skyland-auto-sign
+```
+
+### 定时没跑时怎么查
+
+```bash
+gh run list -R HibernalGlow/skyland-auto-sign -w auto-sign.yml -L 5   # event 列看来源
+gh workflow list --all -R HibernalGlow/skyland-auto-sign             # STATE 是否为 active
+tail -f ~/Library/Logs/skyland-autosign.log                          # 本机兜底的日志
+```
+
+`disabled_manually` / `disabled_inactivity` 说明被停用了，`gh workflow enable auto-sign.yml` 之后
+**还必须提交一次改动 cron 的 commit**，否则定时注册未必恢复。
+
