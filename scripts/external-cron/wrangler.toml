@@ -2,6 +2,12 @@ name = "skyland-autosign-cron"
 main = "worker.js"
 compatibility_date = "2026-10-01"
 
+# 已注册 workers.dev 子域，保留公网入口便于用浏览器查看当天运行数
+workers_dev = true
+
+[observability]
+enabled = true
+
 # Cloudflare Cron 走 UTC：00:40 UTC = 北京时间 08:40，
 # 比 GitHub 自己的 08:17 晚 23 分钟，作为「GitHub 没跑」的兜底。
 [triggers]

@@ -34,23 +34,30 @@ tail -f ~/Library/Logs/skyland-autosign.log
 > 注意：launchd 不读你的 shell 配置，`gh` 的登录态来自钥匙串。
 > 如果日志里报 `gh auth` 相关错误，改成在 plist 的 `EnvironmentVariables` 里加 `GH_TOKEN`（注意该文件权限设为 600）。
 
-## 2. Cloudflare Worker（需要你登录 Cloudflare）
+## 2. Cloudflare Worker（已部署）
+
+当前部署：https://skyland-autosign-cron.hibernalglow.workers.dev （GET 可看「最近 20 小时已有几次运行」）
+
+首次部署步骤：
 
 ```bash
 cd scripts/external-cron
 npx wrangler login                       # 一次性
-npx wrangler deploy                      # 部署 worker + 定时触发器
+npx wrangler deploy                      # 部署 worker + 定时触发器（crons: 40 0 * * *）
 npx wrangler secret put GITHUB_PAT       # 粘贴 GitHub PAT（需 actions:write + actions:read）
 ```
 
 PAT 建议用 **Fine-grained token**，只授权本仓库 `Actions: Read and write`。
-
-验证：
+偷懒也可以直接复用 gh CLI 的 token（**注意：它的权限覆盖你所有仓库**）：
 
 ```bash
-npx wrangler tail                        # 看下一次 cron 的日志
-curl https://skyland-autosign-cron.<你的子域>.workers.dev   # 返回今天已有几次运行
+gh auth token | npx wrangler secret put GITHUB_PAT
 ```
+
+验证：`curl https://skyland-autosign-cron.<你的子域>.workers.dev`
+如果返回 `error: list runs failed: 401 Bad credentials`，就是 `GITHUB_PAT` 为空或失效，重设即可。
+
+查看定时执行日志：`npx wrangler tail`
 
 修改触发时间：编辑 `wrangler.toml` 的 `crons`（UTC）后重新 `wrangler deploy`。
 

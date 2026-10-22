@@ -43,11 +43,11 @@ COUNT="$(gh run list -R "$REPO" -w "$WORKFLOW" -L 30 \
   2>/dev/null || echo 0)"
 
 if [ "${COUNT:-0}" -gt 0 ]; then
-  log "最近 ${WINDOW_HOURS}h 内 $REPO 已有 $COUNT 次运行（窗口起点 $CUTOFF），无需兜底"
+  log "最近 ${WINDOW_HOURS}h 内 $REPO 已有 ${COUNT} 次运行（窗口起点 ${CUTOFF}），无需兜底"
   exit 0
 fi
 
-log "最近 ${WINDOW_HOURS}h 内没有运行（窗口起点 $CUTOFF），提交 workflow_dispatch"
+log "最近 ${WINDOW_HOURS}h 内没有运行（窗口起点 ${CUTOFF}），提交 workflow_dispatch"
 
 if [ "${DRY_RUN:-0}" = "1" ]; then
   log "[dry-run] 只检查不触发：gh workflow run $WORKFLOW -R $REPO --ref $BRANCH"
